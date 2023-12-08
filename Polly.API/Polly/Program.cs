@@ -1,4 +1,5 @@
 using Polly;
+using Polly.Contrib.WaitAndRetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,9 +13,9 @@ builder.Services.AddSwaggerGen();
 // Polly Retry Policy
 IAsyncPolicy<HttpResponseMessage> retryPolicy =
     Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
-    .RetryAsync(4, onRetry: (response, retryCount) =>
+    .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 4), onRetry: (response, retryCount) =>
     {
-        Console.WriteLine($"Retrying API call {retryCount}");
+        Console.WriteLine($"Retrying API call - {retryCount}");
     });
 
 builder.Services.AddSingleton(retryPolicy);
