@@ -7,14 +7,12 @@ namespace Polly.Controllers;
 [Route("api/catalog")]
 public class CatalogController : Controller
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly HttpClient _client;
 
     public CatalogController(
         IHttpClientFactory httpClientFactory)
     {
-        _httpClientFactory = httpClientFactory;
-        _client = _httpClientFactory.CreateClient("InventoryClient"); ;
+        _client = httpClientFactory.CreateClient("InventoryClient");
     }
 
     [HttpGet("{id}")]
