@@ -25,13 +25,12 @@ public class CatalogController : Controller
         var response = await _resiliencePolicy.ExecuteAsync(() =>
             _client.GetAsync($"api/inventory/{id}"));
 
-        if (response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
-            var totalStock = JsonConvert.DeserializeObject<int>(await response.Content.ReadAsStringAsync());
-
-            return Ok(totalStock);
+            throw new Exception("Service is unavailable");
         }
 
-        return StatusCode((int)response.StatusCode, response.Content.ReadAsStringAsync());
+        var totalStock = JsonConvert.DeserializeObject<int>(await response.Content.ReadAsStringAsync());
+        return Ok(totalStock);
     }
 }

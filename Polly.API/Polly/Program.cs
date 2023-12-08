@@ -1,5 +1,4 @@
 using Polly;
-using Polly.Contrib.WaitAndRetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,12 +12,20 @@ builder.Services.AddSwaggerGen();
 // Polly Retry Policy
 IAsyncPolicy<HttpResponseMessage> retryPolicy =
     Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
-    .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(1), 4), onRetry: (response, retryCount) =>
+    .RetryAsync(4, onRetry: (response, retryCount) =>
     {
-        Console.WriteLine($"Retrying API call - {retryCount}");
+        Console.WriteLine($"Retrying API call {retryCount}");
     });
 
-builder.Services.AddSingleton(retryPolicy);
+IAsyncPolicy<HttpResponseMessage> circuitBreakerPolicy = Policy
+    .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+    .AdvancedCircuitBreakerAsync(0.5, TimeSpan.FromSeconds(60), 7, TimeSpan.FromSeconds(60),
+        OnBreak, OnReset, OnHalfOpen);
+
+IAsyncPolicy<HttpResponseMessage> circuitBreakerWrappedInRetryPolicy =
+    Policy.WrapAsync(retryPolicy, circuitBreakerPolicy);
+
+builder.Services.AddSingleton(circuitBreakerWrappedInRetryPolicy);
 
 builder.Services.AddHttpClient("InventoryClient", httpClient =>
 {
@@ -41,3 +48,18 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+void OnHalfOpen()
+{
+    Console.WriteLine("Connection half open");
+}
+
+void OnReset(Context context)
+{
+    Console.WriteLine("Connection reset");
+}
+
+void OnBreak(DelegateResult<HttpResponseMessage> delegateResult, TimeSpan timeSpan, Context context)
+{
+    Console.WriteLine($"Connection break: {delegateResult.Result}, {delegateResult.Result}");
+}

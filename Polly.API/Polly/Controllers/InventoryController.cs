@@ -17,7 +17,7 @@ public class InventoryController : Controller
 
         _requestCount++;
 
-        if (_requestCount % 5 == 0) //ensure only 1 in 5 calls will be successful
+        if (_requestCount % 4 == 0) //ensure only 1 in 4 calls will be successful
         {
             return Ok(10);
         }
