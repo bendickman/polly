@@ -8,18 +8,22 @@ namespace Polly.Controllers;
 public class CatalogController : Controller
 {
     private readonly HttpClient _client;
+    private readonly IAsyncPolicy<HttpResponseMessage> _resiliencePolicy;
 
     public CatalogController(
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory,
+        IAsyncPolicy<HttpResponseMessage> resiliencePolicy)
     {
         _client = httpClientFactory.CreateClient("InventoryClient");
+        _resiliencePolicy = resiliencePolicy;
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(
         int id)
     {
-        var response = await _client.GetAsync($"api/inventory/{id}");
+        var response = await _resiliencePolicy.ExecuteAsync(() =>
+            _client.GetAsync($"api/inventory/{id}"));
 
         if (response.IsSuccessStatusCode)
         {
