@@ -7,6 +7,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddHttpClient("InventoryClient", httpClient =>
+{
+    httpClient.BaseAddress = new Uri("https://localhost:7169/");
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
